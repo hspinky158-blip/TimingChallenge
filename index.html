@@ -156,13 +156,13 @@
         <section id="screen-mode" class="w-full glass-panel rounded-3xl p-6 md:p-10 text-center">
             <div class="max-w-md mx-auto">
                 <div class="inline-flex items-center gap-2 px-3 me-1 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase tracking-widest mb-4">
-                    <i class="fa-solid fa-tower-broadcast animate-pulse"></i> Multi-Tab & Real-Time Sync
+                    <i class="fa-solid fa-tower-broadcast animate-pulse"></i> Real-Time Firebase Online
                 </div>
                 <h2 class="font-orbitron text-3xl md:text-4xl font-extrabold text-white tracking-wide mb-3">
                     THỬ THÁCH THỜI GIAN
                 </h2>
                 <p class="text-slate-400 text-sm mb-8">
-                    Tạo phòng đấu cùng bạn bè, mở nhiều tab trình duyệt cùng lúc hoặc thêm Bot đối thủ!
+                    Tạo phòng đấu cùng bạn bè trực tuyến, chơi qua internet hoặc thêm Bot đối thủ!
                 </p>
 
                 <div class="space-y-4">
@@ -189,7 +189,7 @@
 
             <div class="max-w-md mx-auto space-y-5">
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Tên Tên Chủ Phòng</label>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Tên Chủ Phòng</label>
                     <input type="text" id="create-host-name" placeholder="Tên của bạn..." maxlength="16"
                         class="w-full bg-slate-900/80 border border-slate-700 focus:border-indigo-500 rounded-2xl px-4 py-3 text-white outline-none transition">
                 </div>
@@ -425,12 +425,30 @@
 
     <!-- FOOTER -->
     <footer class="w-full border-t border-white/5 py-3 text-center text-xs text-slate-500">
-        ChronoRooms Real-Time Cross-Tab Synchronization Engine
+        ChronoRooms Real-Time Synchronization Engine
     </footer>
 
 
-    <!-- ================= JAVASCRIPT LOGIC ================= -->
-    <script>
+    <!-- ================= FIREBASE REALTIME DATABASE ENGINE ================= -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, get, update, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // 🛑 LƯU Ý: Thay thế toàn bộ thông số trong firebaseConfig dưới đây bằng thông số lấy từ Firebase Console của bạn.
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            // ✅ Đã cập nhật đúng chuẩn đường dẫn Server Taiwan (asia-east1)
+            databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.asia-east1.firebasedatabase.app",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
         // --- AUDIO SYNTHESIZER ---
         class SoundFX {
             constructor() {
@@ -476,7 +494,7 @@
         const sfx = new SoundFX();
 
 
-        // --- MULTIPLAYER ROOM STATE & BROADCAST ARCHITECTURE ---
+        // --- LOCAL PLAYER & ROOM STATE ---
         const localPlayer = {
             id: 'P_' + Math.random().toString(36).substring(2, 9),
             name: '',
@@ -487,98 +505,13 @@
             diff: 0
         };
 
-        let currentRoom = null; // Local copy of active room state
-        let broadcastChannel = null;
+        let currentRoom = null;
+        let activeRoomRefListener = null;
         let startTimePerformance = 0;
-
-        // --- BROADCAST CHANNEL / LOCAL STORAGE REAL-TIME SYNC ---
-        function initRealtimeCommunication() {
-            if ('BroadcastChannel' in window) {
-                broadcastChannel = new BroadcastChannel('chrono_rooms_channel');
-                broadcastChannel.onmessage = (event) => handleRealtimeMessage(event.data);
-            }
-            
-            // Fallback & secondary sync via localStorage storage events
-            window.addEventListener('storage', (e) => {
-                if (e.key === 'chrono_room_sync_msg' && e.newValue) {
-                    try {
-                        const msg = JSON.parse(e.newValue);
-                        handleRealtimeMessage(msg);
-                    } catch(err){}
-                }
-            });
-        }
-
-        function broadcastMsg(action, payload = {}) {
-            const data = { action, roomCode: localPlayer.roomCode, senderId: localPlayer.id, payload, timestamp: Date.now() };
-            
-            if (broadcastChannel) {
-                broadcastChannel.postMessage(data);
-            }
-            // Trigger storage event for other windows/tabs
-            localStorage.setItem('chrono_room_sync_msg', JSON.stringify(data));
-        }
-
-        function handleRealtimeMessage(msg) {
-            if (!localPlayer.roomCode || msg.roomCode !== localPlayer.roomCode) return;
-
-            switch (msg.action) {
-                case 'ROOM_UPDATED':
-                    currentRoom = msg.payload.room;
-                    saveRoomStateToStorage(currentRoom);
-                    syncLobbyUI();
-                    break;
-
-                case 'GAME_START_COUNTDOWN':
-                    currentRoom = msg.payload.room;
-                    startSynchronizedCountdown();
-                    break;
-
-                case 'PLAYER_SUBMITTED_TIME':
-                    if (localPlayer.isHost) {
-                        handlePlayerResultSubmission(msg.senderId, msg.payload.time, msg.payload.diff);
-                    }
-                    break;
-
-                case 'MATCH_FINISHED':
-                    currentRoom = msg.payload.room;
-                    renderRoomResults();
-                    break;
-
-                case 'GOTO_LOBBY':
-                    currentRoom = msg.payload.room;
-                    localPlayer.finished = false;
-                    syncLobbyUI();
-                    showScreen('lobby');
-                    break;
-            }
-        }
+        let activeCountdownStarted = false;
 
 
-        // --- ROOM STATE STORAGE HELPERS ---
-        function getRoomFromStorage(code) {
-            try {
-                const raw = localStorage.getItem('chrono_room_' + code);
-                return raw ? JSON.parse(raw) : null;
-            } catch(e) { return null; }
-        }
-
-        function saveRoomStateToStorage(room) {
-            if (!room) return;
-            localStorage.setItem('chrono_room_' + room.code, JSON.stringify(room));
-        }
-
-        function generateRoomCode() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let res = '';
-            for (let i = 0; i < 6; i++) {
-                res += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return res;
-        }
-
-
-        // --- DOM SCREENS & BUTTONS ---
+        // --- DOM SCREENS & NAVIGATION ---
         const screens = {
             mode: document.getElementById('screen-mode'),
             create: document.getElementById('screen-create'),
@@ -595,14 +528,11 @@
             });
         }
 
-
-        // --- 1. SETUP & NAVIGATION LISTENERS ---
         document.getElementById('btn-goto-create').addEventListener('click', () => showScreen('create'));
         document.getElementById('btn-goto-join').addEventListener('click', () => showScreen('join'));
         document.getElementById('btn-back-mode-1').addEventListener('click', () => showScreen('mode'));
         document.getElementById('btn-back-mode-2').addEventListener('click', () => showScreen('mode'));
 
-        // Level selection toggle in Create Room
         document.getElementById('create-level-group').addEventListener('click', (e) => {
             const btn = e.target.closest('.create-level-btn');
             if (!btn) return;
@@ -614,8 +544,59 @@
         });
 
 
-        // --- 2. CREATE ROOM LOGIC ---
-        document.getElementById('btn-confirm-create').addEventListener('click', () => {
+        // --- HELPER GENERATE ROOM CODE ---
+        function generateRoomCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let res = '';
+            for (let i = 0; i < 6; i++) {
+                res += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return res;
+        }
+
+
+        // --- FIREBASE LISTEN TO ROOM CHANGES ---
+        function listenToRoomOnFirebase(code) {
+            if (activeRoomRefListener) {
+                off(activeRoomRefListener);
+            }
+
+            activeRoomRefListener = ref(db, 'rooms/' + code);
+            onValue(activeRoomRefListener, (snapshot) => {
+                const data = snapshot.val();
+                if (!data) return;
+
+                currentRoom = data;
+                
+                // Chuyển mảng players thành định dạng xử lý nếu cần
+                if (!Array.isArray(currentRoom.players)) {
+                    currentRoom.players = currentRoom.players ? Object.values(currentRoom.players) : [];
+                }
+
+                // Xử lý đồng bộ các trạng thái phòng
+                if (currentRoom.status === 'LOBBY') {
+                    activeCountdownStarted = false;
+                    syncLobbyUI();
+                    showScreen('lobby');
+                } else if (currentRoom.status === 'PLAYING') {
+                    if (!activeCountdownStarted) {
+                        activeCountdownStarted = true;
+                        startSynchronizedCountdown();
+                    } else {
+                        // Cập nhật số người hoàn thành
+                        const finishedCount = currentRoom.players.filter(p => p.finished).length;
+                        document.getElementById('finish-count-badge').textContent = `Đã xong: ${finishedCount}/${currentRoom.players.length}`;
+                        document.getElementById('waiting-finish-status').textContent = `Đã xong: ${finishedCount}/${currentRoom.players.length} người chơi`;
+                    }
+                } else if (currentRoom.status === 'RESULT') {
+                    renderRoomResults();
+                }
+            });
+        }
+
+
+        // --- 1. TẠO PHÒNG TRÊN FIREBASE ---
+        document.getElementById('btn-confirm-create').addEventListener('click', async () => {
             const nameInput = document.getElementById('create-host-name').value.trim() || 'Host_' + Math.floor(Math.random()*100);
             const levelBtn = document.querySelector('.create-level-btn.active-level');
             const targetLevel = parseFloat(levelBtn.dataset.level);
@@ -627,29 +608,26 @@
             localPlayer.isHost = true;
             localPlayer.roomCode = code;
 
-            // Initialize Room State
-            currentRoom = {
+            const roomData = {
                 code: code,
                 targetLevel: targetLevel,
                 maxPlayers: maxPlayers,
-                status: 'LOBBY', // LOBBY, PLAYING, RESULT
+                status: 'LOBBY',
                 players: [
                     { id: localPlayer.id, name: localPlayer.name, isHost: true, finished: false, time: 0, diff: 0 }
                 ]
             };
 
-            saveRoomStateToStorage(currentRoom);
-            broadcastMsg('ROOM_UPDATED', { room: currentRoom });
+            await set(ref(db, 'rooms/' + code), roomData);
 
             setupNavRoomBadge(code);
-            syncLobbyUI();
-            showScreen('lobby');
+            listenToRoomOnFirebase(code);
             sfx.startBell();
         });
 
 
-        // --- 3. JOIN ROOM LOGIC ---
-        document.getElementById('btn-confirm-join').addEventListener('click', () => {
+        // --- 2. THAM GIA PHÒNG QUA FIREBASE ---
+        document.getElementById('btn-confirm-join').addEventListener('click', async () => {
             const code = document.getElementById('join-room-code').value.trim().toUpperCase();
             const nameInput = document.getElementById('join-player-name').value.trim() || 'Player_' + Math.floor(Math.random()*100);
 
@@ -658,14 +636,17 @@
                 return;
             }
 
-            const existingRoom = getRoomFromStorage(code);
+            const roomSnapshot = await get(ref(db, 'rooms/' + code));
 
-            if (!existingRoom) {
-                alert('Không tìm thấy phòng với mã này!');
+            if (!roomSnapshot.exists()) {
+                alert('Không tìm thấy phòng với mã này trên Server!');
                 return;
             }
 
-            if (existingRoom.players.length >= existingRoom.maxPlayers) {
+            const existingRoom = roomSnapshot.val();
+            let playersList = existingRoom.players ? Object.values(existingRoom.players) : [];
+
+            if (playersList.length >= existingRoom.maxPlayers) {
                 alert('Phòng đấu này đã đủ số lượng người chơi!');
                 return;
             }
@@ -674,9 +655,8 @@
             localPlayer.isHost = false;
             localPlayer.roomCode = code;
 
-            // Add player to room list if not already present
-            if (!existingRoom.players.some(p => p.id === localPlayer.id)) {
-                existingRoom.players.push({
+            if (!playersList.some(p => p.id === localPlayer.id)) {
+                playersList.push({
                     id: localPlayer.id,
                     name: localPlayer.name,
                     isHost: false,
@@ -686,18 +666,16 @@
                 });
             }
 
-            currentRoom = existingRoom;
-            saveRoomStateToStorage(currentRoom);
-            broadcastMsg('ROOM_UPDATED', { room: currentRoom });
+            await update(ref(db, 'rooms/' + code), {
+                players: playersList
+            });
 
             setupNavRoomBadge(code);
-            syncLobbyUI();
-            showScreen('lobby');
+            listenToRoomOnFirebase(code);
             sfx.beep(600, 'sine', 0.1, 0.15);
         });
 
 
-        // Setup Navigation Code Badge & Copy
         function setupNavRoomBadge(code) {
             document.getElementById('nav-room-badge').classList.remove('hidden');
             document.getElementById('nav-room-code').textContent = code;
@@ -713,7 +691,7 @@
         });
 
 
-        // --- 4. LOBBY SYNC & BOT SIMULATOR ---
+        // --- 3. LOBBY SYNC ---
         function syncLobbyUI() {
             if (!currentRoom) return;
 
@@ -748,7 +726,6 @@
                 grid.appendChild(card);
             });
 
-            // Host vs Guest Controls Toggle
             const hostControls = document.getElementById('lobby-host-controls');
             const guestWaiting = document.getElementById('lobby-guest-waiting');
             const startBtn = document.getElementById('btn-host-start-game');
@@ -773,9 +750,10 @@
             }
         }
 
-        // Add Bot AI Button
-        document.getElementById('btn-lobby-add-bot').addEventListener('click', () => {
-            if (!currentRoom) return;
+
+        // Thêm Bot AI
+        document.getElementById('btn-lobby-add-bot').addEventListener('click', async () => {
+            if (!currentRoom || !localPlayer.isHost) return;
             if (currentRoom.players.length >= currentRoom.maxPlayers) {
                 alert('Phòng đã đầy!');
                 return;
@@ -795,25 +773,32 @@
             };
 
             currentRoom.players.push(botPlayer);
-            saveRoomStateToStorage(currentRoom);
-            broadcastMsg('ROOM_UPDATED', { room: currentRoom });
-            syncLobbyUI();
+
+            await update(ref(db, 'rooms/' + currentRoom.code), {
+                players: currentRoom.players
+            });
+
             sfx.beep(700, 'sine', 0.08, 0.12);
         });
 
 
-        // --- 5. SYNCHRONIZED GAMEPLAY START & COUNTDOWN ---
-        document.getElementById('btn-host-start-game').addEventListener('click', () => {
+        // --- 4. BẮT ĐẦU TRẬN ĐẤU ---
+        document.getElementById('btn-host-start-game').addEventListener('click', async () => {
             if (!localPlayer.isHost || !currentRoom) return;
 
-            currentRoom.status = 'PLAYING';
-            currentRoom.players.forEach(p => p.finished = false);
+            const resetPlayers = currentRoom.players.map(p => ({
+                ...p,
+                finished: false,
+                time: 0,
+                diff: 0
+            }));
 
-            saveRoomStateToStorage(currentRoom);
-            broadcastMsg('GAME_START_COUNTDOWN', { room: currentRoom });
-
-            startSynchronizedCountdown();
+            await update(ref(db, 'rooms/' + currentRoom.code), {
+                status: 'PLAYING',
+                players: resetPlayers
+            });
         });
+
 
         function startSynchronizedCountdown() {
             showScreen('game');
@@ -840,7 +825,6 @@
                     clearInterval(timer);
                     sfx.startBell();
 
-                    // Start actual gameplay
                     countdownOverlay.classList.add('hidden');
                     activeArea.classList.remove('hidden');
 
@@ -850,7 +834,6 @@
                     startTimePerformance = performance.now();
                     localPlayer.finished = false;
 
-                    // Trigger Bot Automated Timer if host
                     if (localPlayer.isHost) {
                         triggerBotPlayersLogic();
                     }
@@ -858,8 +841,9 @@
             }, 1000);
         }
 
-        // STOP BUTTON CLICK
-        document.getElementById('btn-stop-timer').addEventListener('click', () => {
+
+        // Nút DỪNG LẠI (Submit kết quả)
+        document.getElementById('btn-stop-timer').addEventListener('click', async () => {
             if (localPlayer.finished) return;
 
             const stopTime = performance.now();
@@ -869,23 +853,18 @@
             const elapsedSec = (stopTime - startTimePerformance) / 1000;
             const diff = Math.abs(elapsedSec - currentRoom.targetLevel);
 
-            // Switch to waiting overlay
             document.getElementById('game-active-area').classList.add('hidden');
             document.getElementById('game-waiting-overlay').classList.remove('hidden');
 
-            if (localPlayer.isHost) {
-                handlePlayerResultSubmission(localPlayer.id, elapsedSec, diff);
-            } else {
-                broadcastMsg('PLAYER_SUBMITTED_TIME', { time: elapsedSec, diff: diff });
-            }
+            handlePlayerResultSubmission(localPlayer.id, elapsedSec, diff);
         });
 
 
-        // --- BOT AI AUTOMATED RUNNER ---
+        // Logic cho Bot chạy tự động
         function triggerBotPlayersLogic() {
             currentRoom.players.filter(p => p.isBot).forEach(bot => {
                 const targetSec = currentRoom.targetLevel;
-                const errorVariance = (Math.random() * 0.5 - 0.25); // ±0.25s
+                const errorVariance = (Math.random() * 0.5 - 0.25);
                 const botTime = Math.max(0.2, targetSec + errorVariance);
 
                 setTimeout(() => {
@@ -895,41 +874,39 @@
         }
 
 
-        // Host Processes Player Submissions
-        function handlePlayerResultSubmission(playerId, timeSec, diffSec) {
+        // Gửi kết quả lên Firebase
+        async function handlePlayerResultSubmission(playerId, timeSec, diffSec) {
             if (!currentRoom) return;
 
-            const p = currentRoom.players.find(x => x.id === playerId);
-            if (p) {
-                p.finished = true;
-                p.time = timeSec;
-                p.diff = diffSec;
+            const roomSnap = await get(ref(db, 'rooms/' + currentRoom.code));
+            if (!roomSnap.exists()) return;
+
+            const latestRoom = roomSnap.val();
+            let playersList = latestRoom.players ? Object.values(latestRoom.players) : [];
+
+            const pIndex = playersList.findIndex(x => x.id === playerId);
+            if (pIndex !== -1) {
+                playersList[pIndex].finished = true;
+                playersList[pIndex].time = timeSec;
+                playersList[pIndex].diff = diffSec;
             }
 
-            const finishedCount = currentRoom.players.filter(x => x.finished).length;
-            const totalCount = currentRoom.players.length;
+            const finishedCount = playersList.filter(x => x.finished).length;
+            const totalCount = playersList.length;
 
-            document.getElementById('waiting-finish-status').textContent = `Đã xong: ${finishedCount}/${totalCount} người chơi`;
+            let updateObj = { players: playersList };
 
-            saveRoomStateToStorage(currentRoom);
-
-            // If ALL players finished, compute match complete
-            if (finishedCount >= totalCount) {
-                currentRoom.status = 'RESULT';
-                // Sort by lowest absolute difference error
-                currentRoom.players.sort((a, b) => a.diff - b.diff);
-
-                saveRoomStateToStorage(currentRoom);
-                broadcastMsg('MATCH_FINISHED', { room: currentRoom });
-
-                renderRoomResults();
-            } else {
-                broadcastMsg('ROOM_UPDATED', { room: currentRoom });
+            if (finishedCount >= totalCount && latestRoom.status !== 'RESULT') {
+                updateObj.status = 'RESULT';
+                playersList.sort((a, b) => a.diff - b.diff);
+                updateObj.players = playersList;
             }
+
+            await update(ref(db, 'rooms/' + currentRoom.code), updateObj);
         }
 
 
-        // --- 6. RENDER RESULTS & PODIUM ---
+        // --- 5. HIỂN THỊ BẢNG XẾP HẠNG ---
         function renderRoomResults() {
             showScreen('result');
             sfx.fanfare();
@@ -938,28 +915,24 @@
             const podium = document.getElementById('podium-container');
             podium.innerHTML = '';
 
-            // Render Podium Top 3
             if (list.length >= 2) {
-                const p2 = list[1]; // Rank 2
-                const p1 = list[0]; // Rank 1
-                const p3 = list[2]; // Rank 3
+                const p2 = list[1];
+                const p1 = list[0];
+                const p3 = list[2];
 
                 podium.innerHTML = `
-                    <!-- Rank 2 -->
                     <div class="flex flex-col items-center">
                         <div class="text-xs font-bold text-slate-300 truncate max-w-[80px]">${escapeHtml(p2.name)}</div>
                         <div class="text-[10px] text-cyan-400 font-orbitron mb-1">${p2.time.toFixed(3)}s</div>
                         <div class="w-full h-20 bg-slate-800 border-t-2 border-slate-400 rounded-t-xl flex items-center justify-center font-orbitron font-extrabold text-slate-300 text-lg">🥈</div>
                     </div>
 
-                    <!-- Rank 1 -->
                     <div class="flex flex-col items-center">
                         <div class="text-xs font-bold text-amber-400 truncate max-w-[90px]">${escapeHtml(p1.name)}</div>
                         <div class="text-[10px] text-amber-300 font-orbitron mb-1">${p1.time.toFixed(3)}s</div>
                         <div class="w-full h-28 bg-gradient-to-t from-amber-600/30 to-amber-500/10 border-t-2 border-amber-400 rounded-t-xl flex items-center justify-center font-orbitron font-black text-amber-400 text-2xl">🥇</div>
                     </div>
 
-                    <!-- Rank 3 -->
                     ${p3 ? `
                     <div class="flex flex-col items-center">
                         <div class="text-xs font-bold text-amber-600 truncate max-w-[80px]">${escapeHtml(p3.name)}</div>
@@ -969,7 +942,6 @@
                 `;
             }
 
-            // Render Table
             const tbody = document.getElementById('room-leaderboard-body');
             tbody.innerHTML = '';
 
@@ -995,7 +967,6 @@
                 tbody.appendChild(tr);
             });
 
-            // Host Actions
             const hostActions = document.getElementById('result-host-actions');
             const guestMsg = document.getElementById('result-guest-msg');
 
@@ -1008,34 +979,30 @@
             }
         }
 
-        // Host Next Round
-        document.getElementById('btn-next-round').addEventListener('click', () => {
+        // Vòng tiếp theo
+        document.getElementById('btn-next-round').addEventListener('click', async () => {
             if (!localPlayer.isHost || !currentRoom) return;
 
-            currentRoom.status = 'LOBBY';
-            currentRoom.players.forEach(p => p.finished = false);
+            const resetPlayers = currentRoom.players.map(p => ({
+                ...p,
+                finished: false,
+                time: 0,
+                diff: 0
+            }));
 
-            saveRoomStateToStorage(currentRoom);
-            broadcastMsg('GOTO_LOBBY', { room: currentRoom });
-
-            syncLobbyUI();
-            showScreen('lobby');
+            await update(ref(db, 'rooms/' + currentRoom.code), {
+                status: 'LOBBY',
+                players: resetPlayers
+            });
         });
 
         document.getElementById('btn-leave-room-host').addEventListener('click', () => {
             location.reload();
         });
 
-
-        // Security Escape HTML
         function escapeHtml(str) {
             return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
         }
-
-        // Initialize Realtime engine on load
-        window.addEventListener('DOMContentLoaded', () => {
-            initRealtimeCommunication();
-        });
     </script>
 </body>
 </html>

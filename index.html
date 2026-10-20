@@ -3,366 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ChronoPrecision - Multiplayer Room Match</title>
-    <!-- Tailwind CSS CDN -->
+    <title>ChronoPulse - Thử Thách Thời Gian Online</title>
+    <!-- Tailwind CSS & FontAwesome Icons -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts Inter & Orbitron -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        orbitron: ['Orbitron', 'sans-serif']
-                    },
-                    colors: {
-                        cyber: {
-                            bg: '#070b14',
-                            card: 'rgba(15, 23, 42, 0.75)',
-                            accent: '#6366f1',
-                            neonCyan: '#06b6d4',
-                            neonPink: '#ec4899',
-                            neonGreen: '#10b981',
-                            neonYellow: '#f59e0b',
-                            danger: '#ef4444'
-                        }
-                    },
-                    animation: {
-                        'pulse-glow': 'pulseGlow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'radar-sweep': 'radar 3s linear infinite',
-                        'ping-slow': 'ping 2s cubic-bezier(0, 0, 0.2, 1) infinite'
-                    },
-                    keyframes: {
-                        pulseGlow: {
-                            '0%, 100%': { opacity: '1', filter: 'drop-shadow(0 0 15px rgba(99, 102, 241, 0.6))' },
-                            '50%': { opacity: '0.5', filter: 'drop-shadow(0 0 5px rgba(99, 102, 241, 0.2))' }
-                        },
-                        radar: {
-                            '0%': { transform: 'rotate(0deg)' },
-                            '100%': { transform: 'rotate(360deg)' }
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Orbitron:wght@600;800;900&display=swap" rel="stylesheet">
 
     <style>
         body {
-            background-color: #050811;
+            background: #090d16;
             background-image: 
-                radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 45%),
-                radial-gradient(circle at 85% 80%, rgba(236, 72, 153, 0.12) 0%, transparent 45%),
-                radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.08) 0%, transparent 60%);
-            background-attachment: fixed;
-            color: #f8fafc;
+                radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.15) 0%, transparent 40%);
+            color: #f1f5f9;
+            font-family: 'Inter', sans-serif;
             user-select: none;
         }
-
-        .glass-panel {
+        .font-orbitron { font-family: 'Orbitron', sans-serif; }
+        .glass {
             background: rgba(15, 23, 42, 0.75);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-        }
-
-        .glass-card {
-            background: rgba(30, 41, 59, 0.5);
-            backdrop-filter: blur(8px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
-        ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.4); border-radius: 4px; }
-
-        .btn-glow-accent { box-shadow: 0 0 20px rgba(99, 102, 241, 0.4); }
-        .btn-glow-accent:hover { box-shadow: 0 0 30px rgba(99, 102, 241, 0.7); }
-        .btn-glow-danger { box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
-        .btn-glow-danger:hover { box-shadow: 0 0 35px rgba(239, 68, 68, 0.8); }
-
-        .scanline {
-            background: linear-gradient(
-                to bottom,
-                rgba(255,255,255,0),
-                rgba(255,255,255,0) 50%,
-                rgba(0, 0, 0, 0.25) 50%,
-                rgba(0, 0, 0, 0.25)
-            );
-            background-size: 100% 4px;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between font-sans antialiased overflow-x-hidden relative">
+<body class="min-h-screen flex flex-col justify-between p-4">
 
-    <div class="pointer-events-none fixed inset-0 z-50 scanline opacity-30"></div>
-
-    <!-- HEADER BAR -->
-    <header class="w-full border-b border-white/10 glass-panel sticky top-0 z-40 px-4 py-3">
-        <div class="max-w-5xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-3 cursor-pointer" id="brand-logo">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-cyan-500 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
-                    <i class="fa-solid fa-users text-xl"></i>
-                </div>
-                <div>
-                    <h1 class="font-orbitron font-bold text-lg md:text-xl tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-cyan-300 to-pink-400">CHRONO<span class="text-white">ROOMS</span></h1>
-                    <p class="text-[10px] text-slate-400 tracking-widest uppercase">Real-Time Multiplayer Match</p>
-                </div>
+    <!-- HEADER -->
+    <header class="max-w-3xl w-full mx-auto glass rounded-2xl p-4 flex justify-between items-center mb-6">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                <i class="fa-solid fa-stopwatch"></i>
             </div>
-
-            <div class="flex items-center gap-3">
-                <div id="nav-room-badge" class="hidden px-3 py-1.5 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-xs font-orbitron font-bold text-indigo-300 flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                    <span>PHÒNG: <span id="nav-room-code" class="text-cyan-300 font-black">------</span></span>
-                </div>
-
-                <button id="nav-sound-btn" class="p-2.5 rounded-xl glass-card text-slate-300 hover:text-white hover:bg-white/10 transition text-sm">
-                    <i id="sound-icon" class="fa-solid fa-volume-high text-cyan-400"></i>
-                </button>
+            <div>
+                <h1 class="font-orbitron font-extrabold text-xl text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">CHRONO<span>PULSE</span></h1>
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest">Multiplayer Realtime Challenge</p>
             </div>
+        </div>
+        <div id="room-badge" class="hidden px-3 py-1.5 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-xs font-orbitron text-cyan-300 font-bold">
+            MÃ PHÒNG: <span id="badge-code" class="text-white">------</span>
         </div>
     </header>
 
-    <!-- MAIN CONTENT CONTAINER -->
-    <main class="max-w-3xl w-full mx-auto p-4 md:p-6 flex-grow flex items-center justify-center my-4">
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-3xl w-full mx-auto flex-grow flex items-center justify-center">
 
-        <!-- 1. MODE SELECTION SCREEN -->
-        <section id="screen-mode" class="w-full glass-panel rounded-3xl p-6 md:p-10 text-center">
-            <div class="max-w-md mx-auto">
-                <div class="inline-flex items-center gap-2 px-3 me-1 py-1 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 uppercase tracking-widest mb-4">
-                    <i class="fa-solid fa-tower-broadcast animate-pulse"></i> Real-Time RealtimeDatabase Online
+        <!-- 1. MÀN HÌNH CHỌN CHẾ ĐỘ -->
+        <section id="screen-home" class="w-full glass rounded-3xl p-8 text-center">
+            <h2 class="font-orbitron text-3xl font-black text-white mb-3">THỬ THÁCH THỜI GIAN</h2>
+            <p class="text-slate-400 text-sm mb-8">Thi đếm ngầm thời gian chính xác cùng bạn bè trực tuyến qua Internet!</p>
+            <div class="space-y-4 max-w-sm mx-auto">
+                <button onclick="showScreen('create')" class="w-full py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-orbitron font-bold text-white shadow-lg shadow-indigo-500/30 transition">
+                    <i class="fa-solid fa-plus-circle mr-2"></i> TẠO PHÒNG MỚI
+                </button>
+                <button onclick="showScreen('join')" class="w-full py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 font-orbitron font-bold text-slate-200 border border-slate-700 transition">
+                    <i class="fa-solid fa-right-to-bracket mr-2 text-cyan-400"></i> NHẬP MÃ VÀO PHÒNG
+                </button>
+            </div>
+        </section>
+
+        <!-- 2. MÀN HÌNH TẠO PHÒNG -->
+        <section id="screen-create" class="hidden w-full glass rounded-3xl p-8 max-w-md mx-auto">
+            <h3 class="font-orbitron text-2xl font-bold text-center text-white mb-6">CẤU HÌNH PHÒNG ĐẤU</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Tên Tên Của Bạn</label>
+                    <input type="text" id="create-name" placeholder="Nhập biệt danh..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-indigo-500">
                 </div>
-                <h2 class="font-orbitron text-3xl md:text-4xl font-extrabold text-white tracking-wide mb-3">
-                    THỬ THÁCH THỜI GIAN
-                </h2>
-                <p class="text-slate-400 text-sm mb-8">
-                    Tạo phòng đấu cùng bạn bè trực tuyến, chơi qua internet hoặc thêm Bot đối thủ!
-                </p>
-
-                <div class="space-y-4">
-                    <button id="btn-goto-create" class="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-cyan-500 text-white font-orbitron font-bold text-base tracking-wider btn-glow-accent hover:opacity-95 active:scale-[0.99] transition flex items-center justify-center gap-3">
-                        <i class="fa-solid fa-plus-circle text-lg"></i>
-                        <span>TẠO PHÒNG MỚI</span>
-                    </button>
-
-                    <button id="btn-goto-join" class="w-full py-4 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-slate-200 font-orbitron font-bold text-base tracking-wider active:scale-[0.99] transition flex items-center justify-center gap-3">
-                        <i class="fa-solid fa-right-to-bracket text-lg text-cyan-400"></i>
-                        <span>NHẬP MÃ VÀO PHÒNG</span>
-                    </button>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Mốc Thời Gian (Giây)</label>
+                    <input type="number" id="create-target" value="10" min="1" max="60" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-indigo-500 font-orbitron">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Số Lượng Người Chơi Tối Đa (Tùy nhập)</label>
+                    <input type="number" id="create-max-players" value="4" min="2" max="100" placeholder="Nhập số người tối đa..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-indigo-500 font-orbitron">
+                </div>
+                <div class="flex gap-3 pt-4">
+                    <button onclick="showScreen('home')" class="w-1/3 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold">Hủy</button>
+                    <button id="btn-create-submit" class="w-2/3 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-orbitron font-bold text-white shadow-lg shadow-indigo-500/30">TẠO PHÒNG</button>
                 </div>
             </div>
         </section>
 
-        <!-- 2. CREATE ROOM SCREEN -->
-        <section id="screen-create" class="hidden w-full glass-panel rounded-3xl p-6 md:p-10">
-            <div class="text-center mb-6">
-                <h3 class="font-orbitron text-2xl font-bold text-white mb-1">CẤU HÌNH PHÒNG ĐẤU</h3>
-                <p class="text-xs text-slate-400">Bạn sẽ là Chủ Phòng (👑 Host)</p>
-            </div>
-
-            <div class="max-w-md mx-auto space-y-5">
+        <!-- 3. MÀN HÌNH THAM GIA PHÒNG -->
+        <section id="screen-join" class="hidden w-full glass rounded-3xl p-8 max-w-md mx-auto">
+            <h3 class="font-orbitron text-2xl font-bold text-center text-white mb-6">THAM GIA PHÒNG</h3>
+            <div class="space-y-4">
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Tên Chủ Phòng</label>
-                    <input type="text" id="create-host-name" placeholder="Tên của bạn..." maxlength="16"
-                        class="w-full bg-slate-900/80 border border-slate-700 focus:border-indigo-500 rounded-2xl px-4 py-3 text-white outline-none transition">
+                    <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Mã Phòng (6 ký tự)</label>
+                    <input type="text" id="join-code" placeholder="VD: A1B2C3" maxlength="6" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-center text-cyan-300 font-orbitron text-xl font-bold tracking-widest uppercase outline-none focus:border-cyan-500">
                 </div>
-
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Mốc Thời Gian Mục Tiêu</label>
-                    <div class="grid grid-cols-3 gap-2" id="create-level-group">
-                        <button type="button" data-level="10" class="create-level-btn active-level glass-card rounded-xl p-3 text-center border border-indigo-500/80 bg-indigo-600/20 text-white font-orbitron font-bold text-sm">10 Giây</button>
-                        <button type="button" data-level="5" class="create-level-btn glass-card rounded-xl p-3 text-center border border-slate-700 bg-slate-800/40 text-slate-300 font-orbitron font-bold text-sm">5 Giây</button>
-                        <button type="button" data-level="1" class="create-level-btn glass-card rounded-xl p-3 text-center border border-slate-700 bg-slate-800/40 text-slate-300 font-orbitron font-bold text-sm">1 Giây</button>
-                    </div>
+                    <label class="block text-xs font-bold uppercase text-slate-300 mb-1">Tên Người Chơi</label>
+                    <input type="text" id="join-name" placeholder="Nhập biệt danh..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white outline-none focus:border-indigo-500">
                 </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Số Lượng Người Chơi Tối Đa</label>
-                    <select id="create-max-players" class="w-full bg-slate-900/80 border border-slate-700 focus:border-indigo-500 rounded-2xl px-4 py-3 text-white outline-none font-medium">
-                        <option value="2">2 Người chơi (1v1)</option>
-                        <option value="4" selected>4 Người chơi</option>
-                        <option value="6">6 Người chơi</option>
-                        <option value="10">10 Người chơi</option>
-                    </select>
-                </div>
-
-                <div class="pt-2 flex gap-3">
-                    <button id="btn-back-mode-1" class="w-1/3 py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm">Quay Lại</button>
-                    <button id="btn-confirm-create" class="w-2/3 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-orbitron font-bold text-sm btn-glow-accent">TẠO PHÒNG NGAY</button>
+                <div class="flex gap-3 pt-4">
+                    <button onclick="showScreen('home')" class="w-1/3 py-3 rounded-xl bg-slate-800 text-slate-300 font-bold">Hủy</button>
+                    <button id="btn-join-submit" class="w-2/3 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 font-orbitron font-bold text-white">VÀO PHÒNG</button>
                 </div>
             </div>
         </section>
 
-        <!-- 3. JOIN ROOM SCREEN -->
-        <section id="screen-join" class="hidden w-full glass-panel rounded-3xl p-6 md:p-10">
-            <div class="text-center mb-6">
-                <h3 class="font-orbitron text-2xl font-bold text-white mb-1">THAM GIA PHÒNG</h3>
-                <p class="text-xs text-slate-400">Nhập mã phòng 6 ký tự để vào sảnh chờ</p>
-            </div>
-
-            <div class="max-w-md mx-auto space-y-5">
+        <!-- 4. MÀN HÌNH SẢNH CHỜ (LOBBY) -->
+        <section id="screen-lobby" class="hidden w-full glass rounded-3xl p-8">
+            <div class="flex flex-col sm:flex-row justify-between items-center bg-slate-900/60 p-4 rounded-2xl border border-slate-800 mb-6 gap-4">
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Mã Phòng (Room Code)</label>
-                    <input type="text" id="join-room-code" placeholder="VD: X7B2K9" maxlength="6"
-                        class="w-full bg-slate-900/80 border border-slate-700 focus:border-cyan-500 rounded-2xl px-4 py-3.5 text-center font-orbitron text-xl font-bold tracking-widest uppercase text-cyan-300 outline-none transition">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Tên Người Chơi</label>
-                    <input type="text" id="join-player-name" placeholder="Nhập biệt danh..." maxlength="16"
-                        class="w-full bg-slate-900/80 border border-slate-700 focus:border-indigo-500 rounded-2xl px-4 py-3 text-white outline-none transition">
-                </div>
-
-                <div class="pt-2 flex gap-3">
-                    <button id="btn-back-mode-2" class="w-1/3 py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm">Quay Lại</button>
-                    <button id="btn-confirm-join" class="w-2/3 py-3.5 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-orbitron font-bold text-sm">VÀO PHÒNG</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- 4. LOBBY SCREEN -->
-        <section id="screen-lobby" class="hidden w-full glass-panel rounded-3xl p-6 md:p-8">
-            <div class="glass-card rounded-2xl p-4 border border-indigo-500/30 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div>
-                    <div class="text-[11px] text-slate-400 uppercase tracking-widest font-semibold">MÃ PHÒNG CHỜ</div>
-                    <div class="flex items-center gap-3 mt-1">
-                        <span id="lobby-room-code-display" class="font-orbitron font-black text-3xl text-cyan-300 tracking-wider">------</span>
-                        <button id="btn-copy-code" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-indigo-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5">
-                            <i class="fa-solid fa-copy"></i><span id="copy-btn-text">Copy</span>
-                        </button>
+                    <div class="text-xs text-slate-400">MÃ PHÒNG CHỜ</div>
+                    <div class="flex items-center gap-2">
+                        <span id="lobby-code" class="font-orbitron text-3xl font-black text-cyan-300">------</span>
+                        <button id="btn-copy" class="text-xs px-2 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-300 rounded-lg border border-slate-700"><i class="fa-solid fa-copy"></i> Copy</button>
                     </div>
                 </div>
-
-                <div class="flex items-center gap-4 text-right">
-                    <div>
-                        <div class="text-[11px] text-slate-400 uppercase tracking-widest">MỐC MỤC TIÊU</div>
-                        <div id="lobby-target-display" class="font-orbitron font-bold text-lg text-amber-400">10 GIÂY</div>
-                    </div>
-                    <div class="border-l border-slate-700 pl-4">
-                        <div class="text-[11px] text-slate-400 uppercase tracking-widest">SỐ LƯỢNG</div>
-                        <div id="lobby-count-display" class="font-orbitron font-bold text-lg text-emerald-400">1/4</div>
-                    </div>
+                <div class="text-right">
+                    <div class="text-xs text-slate-400">MỐC MỤC TIÊU: <strong id="lobby-target" class="text-amber-400 font-orbitron">10s</strong></div>
+                    <div class="text-xs text-slate-400 mt-1">SỐ LƯỢNG: <strong id="lobby-count" class="text-emerald-400 font-orbitron">1/4</strong></div>
                 </div>
             </div>
 
             <div class="mb-6">
                 <div class="flex justify-between items-center mb-3">
-                    <h4 class="font-orbitron text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
-                        <i class="fa-solid fa-users text-indigo-400"></i>
-                        <span>DANH SÁCH THÀNH VIÊN TRONG PHÒNG</span>
-                    </h4>
-                    <button id="btn-lobby-add-bot" class="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 text-cyan-300 px-3 py-1.5 rounded-xl transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-robot"></i><span>Thêm Bot AI</span>
-                    </button>
+                    <h4 class="font-orbitron text-sm font-bold text-slate-200">DANH SÁCH NGƯỜI CHƠI</h4>
+                    <button id="btn-add-bot" class="text-xs bg-slate-800 hover:bg-slate-700 text-cyan-300 px-3 py-1.5 rounded-xl border border-slate-700"><i class="fa-solid fa-robot"></i> Thêm Bot AI</button>
                 </div>
-
-                <div id="lobby-players-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 min-h-[140px]"></div>
+                <div id="lobby-players-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
             </div>
 
-            <div id="lobby-host-controls" class="space-y-3">
-                <button id="btn-host-start-game" class="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-indigo-600 to-cyan-500 text-white font-orbitron font-extrabold text-lg tracking-wider btn-glow-accent hover:opacity-95 transition flex items-center justify-center gap-3">
-                    <i class="fa-solid fa-play"></i><span>BẮT ĐẦU TRẬN ĐẤU</span>
-                </button>
-                <p id="lobby-host-msg" class="text-xs text-center text-slate-400">Yêu cầu ít nhất 2 người chơi (hoặc thêm Bot) để bắt đầu.</p>
+            <div id="host-actions">
+                <button id="btn-start-game" class="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-indigo-600 font-orbitron font-black text-lg text-white shadow-lg">BẮT ĐẦU TRẬN ĐẤU</button>
+                <p id="host-msg" class="text-xs text-center text-slate-400 mt-2">Cần ít nhất 2 người chơi (hoặc thêm Bot) để bắt đầu.</p>
             </div>
-
-            <div id="lobby-guest-waiting" class="hidden py-4 text-center glass-card rounded-2xl border border-slate-800">
+            <div id="guest-waiting" class="hidden text-center py-4">
                 <i class="fa-solid fa-spinner animate-spin text-2xl text-cyan-400 mb-2"></i>
                 <p class="font-orbitron text-sm font-bold text-white">ĐANG CHỜ CHỦ PHÒNG BẮT ĐẦU...</p>
-                <p class="text-xs text-slate-400 mt-1">Trận đấu sẽ bắt đầu đồng bộ cho tất cả người chơi!</p>
             </div>
         </section>
 
-        <!-- 5. GAME SCREEN -->
-        <section id="screen-game" class="hidden w-full glass-panel rounded-3xl p-6 md:p-10 text-center flex flex-col items-center">
-            <div id="game-countdown-overlay" class="py-12 flex flex-col items-center justify-center">
-                <div class="text-xs uppercase tracking-widest text-indigo-400 font-bold mb-2">TRẬN ĐẤU SẮP BẮT ĐẦU</div>
-                <div id="countdown-number" class="font-orbitron text-7xl md:text-9xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-cyan-300 to-pink-500 animate-pulse">3</div>
-                <p class="text-xs text-slate-400 mt-4">Chuẩn bị tinh thần đếm ngầm!</p>
+        <!-- 5. MÀN HÌNH CHƠI GAME -->
+        <section id="screen-game" class="hidden w-full glass rounded-3xl p-8 text-center">
+            <div id="game-countdown" class="py-12">
+                <div class="text-xs text-indigo-400 font-bold mb-2">CHUẨN BỊ</div>
+                <div id="countdown-num" class="font-orbitron text-8xl font-black text-cyan-300 animate-pulse">3</div>
             </div>
 
-            <div id="game-active-area" class="hidden w-full flex flex-col items-center">
-                <div class="flex justify-between items-center w-full max-w-md mb-6 px-2">
-                    <span class="text-xs font-semibold text-slate-400">Mốc: <strong id="play-target-title" class="text-cyan-300">10.00s</strong></span>
-                    <span id="finish-count-badge" class="px-3 py-1 rounded-full bg-slate-800 text-xs text-indigo-300 font-orbitron border border-slate-700">Đã xong: 0/4</span>
+            <div id="game-play-area" class="hidden flex flex-col items-center">
+                <div class="text-sm font-semibold text-slate-400 mb-6">Mốc mục tiêu: <strong id="play-target" class="text-cyan-300 font-orbitron">10.00s</strong></div>
+                <div class="w-64 h-64 rounded-full border-2 border-slate-700 flex flex-col items-center justify-center glass mb-8 shadow-2xl">
+                    <i class="fa-solid fa-eye-slash text-4xl text-pink-500 mb-3 animate-bounce"></i>
+                    <p class="font-orbitron text-xs font-bold text-indigo-300">ĐANG ĐẾM NGẦM...</p>
+                    <p class="text-[10px] text-slate-500 mt-1">Đồng hồ hoàn toàn bị ẩn</p>
                 </div>
-
-                <div class="w-64 h-64 md:w-72 md:h-72 rounded-full border-2 border-slate-700/60 flex items-center justify-center relative overflow-hidden glass-card shadow-2xl my-4">
-                    <div class="absolute inset-0 bg-gradient-to-tr from-indigo-500/20 via-transparent to-transparent animate-radar-sweep origin-center pointer-events-none"></div>
-                    <div class="flex flex-col items-center text-center p-6 z-10">
-                        <div class="w-16 h-16 rounded-full bg-pink-500/20 border border-pink-500/40 flex items-center justify-center text-pink-400 text-2xl mb-3 animate-ping-slow">
-                            <i class="fa-solid fa-eye-slash"></i>
-                        </div>
-                        <p class="font-orbitron text-xs font-bold text-indigo-300 tracking-widest uppercase">ĐANG ĐẾM NGẦM...</p>
-                        <p class="text-[11px] text-slate-400 mt-1">Đồng hồ hoàn toàn bị ẩn!</p>
-                    </div>
-                </div>
-
-                <div class="w-full max-w-sm mt-6">
-                    <button id="btn-stop-timer" class="w-full py-5 rounded-2xl bg-gradient-to-r from-rose-600 via-red-500 to-pink-600 text-white font-orbitron font-extrabold text-2xl tracking-wider btn-glow-danger active:scale-[0.98] transition">DỪNG LẠI!</button>
-                </div>
+                <button id="btn-stop" class="w-full max-w-sm py-5 rounded-2xl bg-gradient-to-r from-rose-600 to-red-500 font-orbitron font-extrabold text-2xl text-white shadow-lg shadow-red-500/30">DỪNG LẠI!</button>
             </div>
 
-            <div id="game-waiting-overlay" class="hidden py-8 flex flex-col items-center">
-                <div class="w-16 h-16 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 text-2xl mb-4">
-                    <i class="fa-solid fa-hourglass-half animate-spin"></i>
-                </div>
-                <h4 class="font-orbitron text-xl font-bold text-white mb-1">ĐÃ GHI NHẬN KẾT QUẢ!</h4>
-                <p class="text-xs text-slate-400 mb-4">Đang chờ các người chơi còn lại hoàn tất lượt...</p>
-                <div id="waiting-finish-status" class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-cyan-300 font-orbitron text-sm">Đã xong: 1/4 người chơi</div>
+            <div id="game-waiting" class="hidden py-8">
+                <i class="fa-solid fa-hourglass-half animate-spin text-3xl text-cyan-400 mb-3"></i>
+                <h4 class="font-orbitron text-lg font-bold text-white">ĐÃ GHI NHẬN KẾT QUẢ!</h4>
+                <p id="game-wait-status" class="text-xs text-slate-400 mt-2">Đang chờ các người chơi khác hoàn tất...</p>
             </div>
         </section>
 
-        <!-- 6. RESULT SCREEN -->
-        <section id="screen-result" class="hidden w-full glass-panel rounded-3xl p-6 md:p-8">
-            <div class="text-center mb-6">
-                <div class="inline-block px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold mb-2 border border-amber-500/30">🏆 KẾT QUẢ TRẬN ĐẤU PHÒNG</div>
-                <h3 class="font-orbitron text-2xl md:text-3xl font-black text-white">BẢNG XẾP HẠNG PHÒNG</h3>
-            </div>
-
-            <div id="podium-container" class="grid grid-cols-3 gap-2 max-w-md mx-auto items-end mb-8 min-h-[160px]"></div>
-
-            <div class="overflow-x-auto rounded-2xl border border-slate-800 glass-card mb-6">
+        <!-- 6. MÀN HÌNH KẾT QUẢ -->
+        <section id="screen-result" class="hidden w-full glass rounded-3xl p-8">
+            <h3 class="font-orbitron text-2xl font-black text-center text-amber-400 mb-6">🏆 BẢNG XẾP HẠNG PHÒNG</h3>
+            <div class="overflow-x-auto rounded-xl border border-slate-800 mb-6">
                 <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-900/90 text-xs text-slate-400 uppercase font-orbitron border-b border-slate-800">
+                    <thead class="bg-slate-900 text-xs text-slate-400 font-orbitron uppercase border-b border-slate-800">
                         <tr>
-                            <th class="p-3.5 text-center w-16">Hạng</th>
-                            <th class="p-3.5">Người Chơi</th>
-                            <th class="p-3.5 text-right">Thời Gian</th>
-                            <th class="p-3.5 text-right">Độ Lệch</th>
+                            <th class="p-3 text-center">Hạng</th>
+                            <th class="p-3">Người Chơi</th>
+                            <th class="p-3 text-right">Thời Gian</th>
+                            <th class="p-3 text-right">Độ Lệch</th>
                         </tr>
                     </thead>
-                    <tbody id="room-leaderboard-body" class="divide-y divide-slate-800/60 font-medium"></tbody>
+                    <tbody id="result-tbody" class="divide-y divide-slate-800"></tbody>
                 </table>
             </div>
-
-            <div id="result-host-actions" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button id="btn-next-round" class="py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-orbitron font-bold text-sm btn-glow-accent transition">🔄 VÒNG TIẾP THEO (VỀ SẢNH)</button>
-                <button id="btn-leave-room-host" class="py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm border border-slate-700">RỜI PHÒNG</button>
+            <div id="result-actions" class="hidden">
+                <button id="btn-next-round" class="w-full py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 font-orbitron font-bold text-white shadow-lg">VÒNG TIẾP THEO (VỀ SẢNH)</button>
             </div>
-
-            <div id="result-guest-msg" class="text-center py-2 text-xs text-slate-400">Đang chờ chủ phòng bắt đầu vòng tiếp theo...</div>
+            <p id="result-guest-msg" class="text-center text-xs text-slate-400">Đang chờ chủ phòng bắt đầu vòng tiếp theo...</p>
         </section>
 
     </main>
 
-    <footer class="w-full border-t border-white/5 py-3 text-center text-xs text-slate-500">
-        ChronoRooms RealtimeDatabase Engine
+    <footer class="text-center text-xs text-slate-600 py-2">
+        ChronoPulse Realtime Engine
     </footer>
 
-    <!-- FIREBASE REALTIME DATABASE MODULE -->
+    <!-- FIREBASE REALTIME DATABASE SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, set, get, update, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // 🔴 THAY THẾ TOÀN BỘ GIÁ TRỊ NÀY BẰNG CẤU HÌNH CỦA BẠN TRÊN FIREBASE CONSOLE
+        // 🔴 ĐIỀN THÔNG SỐ FIREBASE DƯỚI ĐÂY LẤY TỪ FIREBASE CONSOLE CỦA BẠN
         const firebaseConfig = {
             apiKey: "YOUR_API_KEY",
             authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
@@ -376,49 +212,8 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Sound Engine
-        class SoundFX {
-            constructor() { this.ctx = null; this.enabled = true; }
-            init() {
-                if (!this.ctx) {
-                    const AudioContext = window.AudioContext || window.webkitAudioContext;
-                    if (AudioContext) this.ctx = new AudioContext();
-                }
-            }
-            beep(freq, type = 'sine', duration = 0.1, vol = 0.1) {
-                if (!this.enabled) return;
-                this.init();
-                if (!this.ctx) return;
-                try {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.type = type;
-                    osc.frequency.value = freq;
-                    gain.gain.setValueAtTime(vol, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start();
-                    osc.stop(this.ctx.currentTime + duration);
-                } catch(e){}
-            }
-            countdownTick() { this.beep(440, 'sine', 0.08, 0.15); }
-            startBell() {
-                this.beep(880, 'triangle', 0.2, 0.2);
-                setTimeout(() => this.beep(1760, 'sine', 0.3, 0.2), 100);
-            }
-            stopBeep() { this.beep(600, 'square', 0.1, 0.15); }
-            fanfare() {
-                this.beep(523, 'sine', 0.1, 0.15);
-                setTimeout(() => this.beep(659, 'sine', 0.1, 0.15), 100);
-                setTimeout(() => this.beep(783, 'sine', 0.1, 0.15), 200);
-                setTimeout(() => this.beep(1046, 'triangle', 0.3, 0.2), 300);
-            }
-        }
-        const sfx = new SoundFX();
-
-        const localPlayer = {
-            id: 'P_' + Math.random().toString(36).substring(2, 9),
+        const localUser = {
+            id: 'U_' + Math.random().toString(36).substring(2, 9),
             name: '',
             isHost: false,
             roomCode: null,
@@ -428,483 +223,280 @@
         };
 
         let currentRoom = null;
-        let activeRoomListener = null;
-        let startTimePerformance = 0;
-        let activeCountdownStarted = false;
+        let activeListener = null;
+        let startTime = 0;
+        let countdownStarted = false;
 
-        const screens = {
-            mode: document.getElementById('screen-mode'),
-            create: document.getElementById('screen-create'),
-            join: document.getElementById('screen-join'),
-            lobby: document.getElementById('screen-lobby'),
-            game: document.getElementById('screen-game'),
-            result: document.getElementById('screen-result')
-        };
-
-        function showScreen(key) {
-            Object.keys(screens).forEach(k => {
-                if (k === key) screens[k].classList.remove('hidden');
-                else screens[k].classList.add('hidden');
+        function showScreen(screenId) {
+            ['home', 'create', 'join', 'lobby', 'game', 'result'].forEach(id => {
+                document.getElementById('screen-' + id).classList.add('hidden');
             });
+            document.getElementById('screen-' + screenId).classList.remove('hidden');
+        }
+        window.showScreen = showScreen;
+
+        function parsePlayers(p) {
+            if (!p) return [];
+            return Array.isArray(p) ? p : Object.values(p);
         }
 
-        // Chuyển đối tượng người chơi từ Object sang Array một cách an toàn
-        function extractPlayersList(playersObj) {
-            if (!playersObj) return [];
-            if (Array.isArray(playersObj)) return playersObj;
-            return Object.values(playersObj);
+        function generateCode() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
         }
 
-        document.getElementById('btn-goto-create').addEventListener('click', () => showScreen('create'));
-        document.getElementById('btn-goto-join').addEventListener('click', () => showScreen('join'));
-        document.getElementById('btn-back-mode-1').addEventListener('click', () => showScreen('mode'));
-        document.getElementById('btn-back-mode-2').addEventListener('click', () => showScreen('mode'));
+        function listenRoom(code) {
+            if (activeListener) off(activeListener);
+            activeListener = ref(db, 'rooms/' + code);
 
-        document.getElementById('create-level-group').addEventListener('click', (e) => {
-            const btn = e.target.closest('.create-level-btn');
-            if (!btn) return;
-            document.querySelectorAll('.create-level-btn').forEach(b => {
-                b.className = "create-level-btn glass-card rounded-xl p-3 text-center border border-slate-700 bg-slate-800/40 text-slate-300 font-orbitron font-bold text-sm";
-            });
-            btn.className = "create-level-btn active-level glass-card rounded-xl p-3 text-center border border-indigo-500/80 bg-indigo-600/20 text-white font-orbitron font-bold text-sm";
-            sfx.beep(500, 'sine', 0.05, 0.1);
-        });
-
-        function generateRoomCode() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let res = '';
-            for (let i = 0; i < 6; i++) {
-                res += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return res;
-        }
-
-        // LẮNG NGHE THỜI GIAN THỰC TỪ REALTIME DATABASE
-        function listenToRoomOnRealtimeDB(code) {
-            if (activeRoomListener) off(activeRoomListener);
-
-            activeRoomListener = ref(db, 'rooms/' + code);
-            onValue(activeRoomListener, (snapshot) => {
-                const data = snapshot.val();
+            onValue(activeListener, (snap) => {
+                const data = snap.val();
                 if (!data) return;
 
                 currentRoom = data;
-                currentRoom.players = extractPlayersList(currentRoom.players);
+                currentRoom.players = parsePlayers(currentRoom.players);
 
                 if (currentRoom.status === 'LOBBY') {
-                    activeCountdownStarted = false;
-                    syncLobbyUI();
+                    countdownStarted = false;
+                    renderLobby();
                     showScreen('lobby');
                 } else if (currentRoom.status === 'PLAYING') {
-                    if (!activeCountdownStarted) {
-                        activeCountdownStarted = true;
-                        startSynchronizedCountdown();
+                    if (!countdownStarted) {
+                        countdownStarted = true;
+                        runCountdown();
                     } else {
-                        const finishedCount = currentRoom.players.filter(p => p.finished).length;
-                        document.getElementById('finish-count-badge').textContent = `Đã xong: ${finishedCount}/${currentRoom.players.length}`;
-                        document.getElementById('waiting-finish-status').textContent = `Đã xong: ${finishedCount}/${currentRoom.players.length} người chơi`;
+                        const done = currentRoom.players.filter(x => x.finished).length;
+                        document.getElementById('game-wait-status').textContent = `Đã xong: ${done}/${currentRoom.players.length} người chơi`;
                     }
                 } else if (currentRoom.status === 'RESULT') {
-                    renderRoomResults();
+                    renderResults();
                 }
             });
         }
 
-        // TẠO PHÒNG
-        document.getElementById('btn-confirm-create').addEventListener('click', async () => {
-            const nameInput = document.getElementById('create-host-name').value.trim() || 'Host_' + Math.floor(Math.random()*100);
-            const levelBtn = document.querySelector('.create-level-btn.active-level');
-            const targetLevel = parseFloat(levelBtn.dataset.level);
-            const maxPlayers = parseInt(document.getElementById('create-max-players').value);
+        // TẠO PHÒNG MỚI
+        document.getElementById('btn-create-submit').addEventListener('click', async () => {
+            const name = document.getElementById('create-name').value.trim() || 'Host_' + Math.floor(Math.random()*100);
+            const target = parseFloat(document.getElementById('create-target').value) || 10;
+            const maxPlayers = parseInt(document.getElementById('create-max-players').value) || 4;
 
-            const code = generateRoomCode();
-
-            localPlayer.name = nameInput;
-            localPlayer.isHost = true;
-            localPlayer.roomCode = code;
+            const code = generateCode();
+            localUser.name = name;
+            localUser.isHost = true;
+            localUser.roomCode = code;
 
             const roomData = {
                 code: code,
-                targetLevel: targetLevel,
+                target: target,
                 maxPlayers: maxPlayers,
                 status: 'LOBBY',
-                players: [
-                    { id: localPlayer.id, name: localPlayer.name, isHost: true, finished: false, time: 0, diff: 0 }
-                ]
+                players: [{ id: localUser.id, name: name, isHost: true, finished: false, time: 0, diff: 0 }]
             };
 
-            try {
-                await set(ref(db, 'rooms/' + code), roomData);
-                setupNavRoomBadge(code);
-                listenToRoomOnRealtimeDB(code);
-                sfx.startBell();
-            } catch (err) {
-                alert("Lỗi khi kết nối Realtime Database: " + err.message);
-            }
+            await set(ref(db, 'rooms/' + code), roomData);
+            document.getElementById('room-badge').classList.remove('hidden');
+            document.getElementById('badge-code').textContent = code;
+            listenRoom(code);
         });
 
         // THAM GIA PHÒNG
-        document.getElementById('btn-confirm-join').addEventListener('click', async () => {
-            const code = document.getElementById('join-room-code').value.trim().toUpperCase();
-            const nameInput = document.getElementById('join-player-name').value.trim() || 'Player_' + Math.floor(Math.random()*100);
+        document.getElementById('btn-join-submit').addEventListener('click', async () => {
+            const code = document.getElementById('join-code').value.trim().toUpperCase();
+            const name = document.getElementById('join-name').value.trim() || 'Player_' + Math.floor(Math.random()*100);
 
-            if (!code || code.length !== 6) {
-                alert('Vui lòng nhập đúng mã phòng 6 ký tự!');
-                return;
+            if (!code || code.length !== 6) return alert('Mã phòng phải đủ 6 ký tự!');
+
+            const snap = await get(ref(db, 'rooms/' + code));
+            if (!snap.exists()) return alert('Không tìm thấy phòng!');
+
+            const room = snap.val();
+            let players = parsePlayers(room.players);
+
+            if (players.length >= room.maxPlayers) return alert('Phòng đã đầy!');
+
+            localUser.name = name;
+            localUser.isHost = false;
+            localUser.roomCode = code;
+
+            if (!players.some(p => p.id === localUser.id)) {
+                players.push({ id: localUser.id, name: name, isHost: false, finished: false, time: 0, diff: 0 });
             }
 
-            try {
-                const roomRef = ref(db, 'rooms/' + code);
-                const snapshot = await get(roomRef);
-
-                if (!snapshot.exists()) {
-                    alert('Không tìm thấy phòng với mã này!');
-                    return;
-                }
-
-                const existingRoom = snapshot.val();
-                let playersList = extractPlayersList(existingRoom.players);
-
-                if (playersList.length >= existingRoom.maxPlayers) {
-                    alert('Phòng đấu này đã đủ số lượng người chơi!');
-                    return;
-                }
-
-                localPlayer.name = nameInput;
-                localPlayer.isHost = false;
-                localPlayer.roomCode = code;
-
-                if (!playersList.some(p => p.id === localPlayer.id)) {
-                    playersList.push({
-                        id: localPlayer.id,
-                        name: localPlayer.name,
-                        isHost: false,
-                        finished: false,
-                        time: 0,
-                        diff: 0
-                    });
-                }
-
-                await update(ref(db, 'rooms/' + code), { players: playersList });
-
-                setupNavRoomBadge(code);
-                listenToRoomOnRealtimeDB(code);
-                sfx.beep(600, 'sine', 0.1, 0.15);
-            } catch (err) {
-                alert("Lỗi khi tham gia phòng: " + err.message);
-            }
+            await update(ref(db, 'rooms/' + code), { players: players });
+            document.getElementById('room-badge').classList.remove('hidden');
+            document.getElementById('badge-code').textContent = code;
+            listenRoom(code);
         });
 
-        function setupNavRoomBadge(code) {
-            document.getElementById('nav-room-badge').classList.remove('hidden');
-            document.getElementById('nav-room-code').textContent = code;
-        }
+        // HIỂN THỊ SẢNH CHỜ
+        function renderLobby() {
+            document.getElementById('lobby-code').textContent = currentRoom.code;
+            document.getElementById('lobby-target').textContent = currentRoom.target + 's';
+            document.getElementById('lobby-count').textContent = `${currentRoom.players.length}/${currentRoom.maxPlayers}`;
 
-        document.getElementById('btn-copy-code').addEventListener('click', () => {
-            if (!localPlayer.roomCode) return;
-            navigator.clipboard.writeText(localPlayer.roomCode);
-            const copyText = document.getElementById('copy-btn-text');
-            copyText.textContent = 'Đã Copy!';
-            sfx.beep(800, 'sine', 0.05, 0.1);
-            setTimeout(() => copyText.textContent = 'Copy', 2000);
-        });
-
-        function syncLobbyUI() {
-            if (!currentRoom) return;
-
-            document.getElementById('lobby-room-code-display').textContent = currentRoom.code;
-            document.getElementById('lobby-target-display').textContent = currentRoom.targetLevel + ' GIÂY';
-            document.getElementById('lobby-count-display').textContent = `${currentRoom.players.length}/${currentRoom.maxPlayers}`;
-
-            const grid = document.getElementById('lobby-players-grid');
-            grid.innerHTML = '';
+            const listEl = document.getElementById('lobby-players-list');
+            listEl.innerHTML = '';
 
             currentRoom.players.forEach(p => {
-                const card = document.createElement('div');
-                card.className = "glass-card rounded-2xl p-3 border border-slate-700/60 flex items-center justify-between";
-                const isMe = (p.id === localPlayer.id);
-
-                card.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-xl ${p.isHost ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40' : 'bg-indigo-500/20 text-indigo-400'} flex items-center justify-center font-bold text-sm">
-                            ${p.isHost ? '👑' : '<i class="fa-solid fa-user"></i>'}
-                        </div>
-                        <div>
-                            <div class="text-sm font-bold text-white flex items-center gap-1.5">
-                                ${escapeHtml(p.name)}
-                                ${isMe ? '<span class="text-[10px] bg-indigo-500/30 text-indigo-300 px-1.5 py-0.5 rounded">Bạn</span>' : ''}
-                            </div>
-                            <div class="text-[10px] text-slate-400">${p.isHost ? 'Chủ Phòng' : 'Thành viên'}</div>
-                        </div>
+                const isMe = p.id === localUser.id;
+                listEl.innerHTML += `
+                    <div class="glass p-3 rounded-xl flex justify-between items-center">
+                        <div class="font-bold text-sm text-white">${p.name} ${isMe ? '<span class="text-xs text-indigo-400">(Bạn)</span>' : ''}</div>
+                        <span class="text-xs font-bold ${p.isHost ? 'text-amber-400' : 'text-emerald-400'}">${p.isHost ? '👑 Chủ phòng' : 'Sẵn sàng'}</span>
                     </div>
-                    <span class="text-[10px] text-emerald-400 font-semibold px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20">Sẵn sàng</span>
                 `;
-                grid.appendChild(card);
             });
 
-            const hostControls = document.getElementById('lobby-host-controls');
-            const guestWaiting = document.getElementById('lobby-guest-waiting');
-            const startBtn = document.getElementById('btn-host-start-game');
-            const hostMsg = document.getElementById('lobby-host-msg');
-
-            if (localPlayer.isHost) {
-                hostControls.classList.remove('hidden');
-                guestWaiting.classList.add('hidden');
-
-                if (currentRoom.players.length >= 2) {
-                    startBtn.disabled = false;
-                    startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    hostMsg.textContent = "Tất cả đã sẵn sàng. Nhấn Bắt đầu!";
-                } else {
-                    startBtn.disabled = true;
-                    startBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                    hostMsg.textContent = "Cần ít nhất 2 người chơi (hoặc thêm Bot) để bắt đầu.";
-                }
+            if (localUser.isHost) {
+                document.getElementById('host-actions').classList.remove('hidden');
+                document.getElementById('guest-waiting').classList.add('hidden');
+                document.getElementById('btn-start-game').disabled = currentRoom.players.length < 2;
             } else {
-                hostControls.classList.add('hidden');
-                guestWaiting.classList.remove('hidden');
+                document.getElementById('host-actions').classList.add('hidden');
+                document.getElementById('guest-waiting').classList.remove('hidden');
             }
         }
 
-        // BOT AI
-        document.getElementById('btn-lobby-add-bot').addEventListener('click', async () => {
-            if (!currentRoom || !localPlayer.isHost) return;
-            if (currentRoom.players.length >= currentRoom.maxPlayers) {
-                alert('Phòng đã đầy!');
-                return;
-            }
+        // THÊM BOT AI
+        document.getElementById('btn-add-bot').addEventListener('click', async () => {
+            if (!localUser.isHost || !currentRoom) return;
+            if (currentRoom.players.length >= currentRoom.maxPlayers) return alert('Phòng đã đầy!');
 
-            const botNames = ['Cyber_Bot', 'Neon_AI', 'Reflex_X', 'Chrono_Bot', 'Alpha_AI'];
-            const randomBotName = botNames[Math.floor(Math.random() * botNames.length)] + '_' + Math.floor(Math.random()*90 + 10);
-
-            const botPlayer = {
-                id: 'BOT_' + Math.random().toString(36).substring(2, 9),
-                name: randomBotName,
-                isHost: false,
+            const botNames = ['CyberBot', 'ReflexAI', 'ChronoBot', 'NeonAI'];
+            const bot = {
+                id: 'BOT_' + Math.random().toString(36).substring(2, 7),
+                name: botNames[Math.floor(Math.random() * botNames.length)] + '_' + Math.floor(Math.random()*90 + 10),
                 isBot: true,
                 finished: false,
                 time: 0,
                 diff: 0
             };
 
-            currentRoom.players.push(botPlayer);
+            currentRoom.players.push(bot);
             await update(ref(db, 'rooms/' + currentRoom.code), { players: currentRoom.players });
-            sfx.beep(700, 'sine', 0.08, 0.12);
         });
 
-        // START GAME
-        document.getElementById('btn-host-start-game').addEventListener('click', async () => {
-            if (!localPlayer.isHost || !currentRoom) return;
-
-            const resetPlayers = currentRoom.players.map(p => ({
-                ...p,
-                finished: false,
-                time: 0,
-                diff: 0
-            }));
-
-            await update(ref(db, 'rooms/' + currentRoom.code), {
-                status: 'PLAYING',
-                players: resetPlayers
-            });
+        // BẮT ĐẦU GAME
+        document.getElementById('btn-start-game').addEventListener('click', async () => {
+            if (!localUser.isHost) return;
+            const resetP = currentRoom.players.map(p => ({ ...p, finished: false, time: 0, diff: 0 }));
+            await update(ref(db, 'rooms/' + currentRoom.code), { status: 'PLAYING', players: resetP });
         });
 
-        function startSynchronizedCountdown() {
+        // ĐẾM NGƯỢC
+        function runCountdown() {
             showScreen('game');
+            document.getElementById('game-countdown').classList.remove('hidden');
+            document.getElementById('game-play-area').classList.add('hidden');
+            document.getElementById('game-waiting').classList.add('hidden');
 
-            const countdownOverlay = document.getElementById('game-countdown-overlay');
-            const activeArea = document.getElementById('game-active-area');
-            const waitingOverlay = document.getElementById('game-waiting-overlay');
-
-            countdownOverlay.classList.remove('hidden');
-            activeArea.classList.add('hidden');
-            waitingOverlay.classList.add('hidden');
-
-            const numDisplay = document.getElementById('countdown-number');
-            let count = 3;
-            numDisplay.textContent = count;
-            sfx.countdownTick();
+            let num = 3;
+            document.getElementById('countdown-num').textContent = num;
 
             const timer = setInterval(() => {
-                count--;
-                if (count > 0) {
-                    numDisplay.textContent = count;
-                    sfx.countdownTick();
+                num--;
+                if (num > 0) {
+                    document.getElementById('countdown-num').textContent = num;
                 } else {
                     clearInterval(timer);
-                    sfx.startBell();
+                    document.getElementById('game-countdown').classList.add('hidden');
+                    document.getElementById('game-play-area').classList.remove('hidden');
+                    document.getElementById('play-target').textContent = currentRoom.target + '.00s';
 
-                    countdownOverlay.classList.add('hidden');
-                    activeArea.classList.remove('hidden');
+                    startTime = performance.now();
+                    localUser.finished = false;
 
-                    document.getElementById('play-target-title').textContent = currentRoom.targetLevel + '.00s';
-                    document.getElementById('finish-count-badge').textContent = `Đã xong: 0/${currentRoom.players.length}`;
-
-                    startTimePerformance = performance.now();
-                    localPlayer.finished = false;
-
-                    if (localPlayer.isHost) {
-                        triggerBotPlayersLogic();
-                    }
+                    if (localUser.isHost) runBots();
                 }
             }, 1000);
         }
 
-        // STOP TIMER
-        document.getElementById('btn-stop-timer').addEventListener('click', () => {
-            if (localPlayer.finished) return;
+        // NÚT DỪNG LẠI
+        document.getElementById('btn-stop').addEventListener('click', () => {
+            if (localUser.finished) return;
 
             const stopTime = performance.now();
-            localPlayer.finished = true;
-            sfx.stopBeep();
+            localUser.finished = true;
 
-            const elapsedSec = (stopTime - startTimePerformance) / 1000;
-            const diff = Math.abs(elapsedSec - currentRoom.targetLevel);
+            const elapsed = (stopTime - startTime) / 1000;
+            const diff = Math.abs(elapsed - currentRoom.target);
 
-            document.getElementById('game-active-area').classList.add('hidden');
-            document.getElementById('game-waiting-overlay').classList.remove('hidden');
+            document.getElementById('game-play-area').classList.add('hidden');
+            document.getElementById('game-waiting').classList.remove('hidden');
 
-            handlePlayerResultSubmission(localPlayer.id, elapsedSec, diff);
+            submitTime(localUser.id, elapsed, diff);
         });
 
-        function triggerBotPlayersLogic() {
+        function runBots() {
             currentRoom.players.filter(p => p.isBot).forEach(bot => {
-                const targetSec = currentRoom.targetLevel;
-                const errorVariance = (Math.random() * 0.5 - 0.25);
-                const botTime = Math.max(0.2, targetSec + errorVariance);
-
-                setTimeout(() => {
-                    handlePlayerResultSubmission(bot.id, botTime, Math.abs(botTime - targetSec));
-                }, botTime * 1000);
+                const target = currentRoom.target;
+                const botTime = Math.max(0.2, target + (Math.random() * 0.4 - 0.2));
+                setTimeout(() => submitTime(bot.id, botTime, Math.abs(botTime - target)), botTime * 1000);
             });
         }
 
-        async function handlePlayerResultSubmission(playerId, timeSec, diffSec) {
-            if (!currentRoom) return;
+        async function submitTime(uid, time, diff) {
+            const snap = await get(ref(db, 'rooms/' + currentRoom.code));
+            if (!snap.exists()) return;
 
-            const roomRef = ref(db, 'rooms/' + currentRoom.code);
-            const snapshot = await get(roomRef);
-            if (!snapshot.exists()) return;
+            let room = snap.val();
+            let players = parsePlayers(room.players);
 
-            const latestRoom = snapshot.val();
-            let playersList = extractPlayersList(latestRoom.players);
-
-            const pIndex = playersList.findIndex(x => x.id === playerId);
-            if (pIndex !== -1) {
-                playersList[pIndex].finished = true;
-                playersList[pIndex].time = timeSec;
-                playersList[pIndex].diff = diffSec;
+            const idx = players.findIndex(p => p.id === uid);
+            if (idx !== -1) {
+                players[idx].finished = true;
+                players[idx].time = time;
+                players[idx].diff = diff;
             }
 
-            const finishedCount = playersList.filter(x => x.finished).length;
-            const totalCount = playersList.length;
+            const done = players.filter(p => p.finished).length;
+            let updateObj = { players: players };
 
-            let updateObj = { players: playersList };
-
-            if (finishedCount >= totalCount && latestRoom.status !== 'RESULT') {
+            if (done >= players.length && room.status !== 'RESULT') {
                 updateObj.status = 'RESULT';
-                playersList.sort((a, b) => a.diff - b.diff);
-                updateObj.players = playersList;
+                players.sort((a, b) => a.diff - b.diff);
+                updateObj.players = players;
             }
 
-            await update(roomRef, updateObj);
+            await update(ref(db, 'rooms/' + currentRoom.code), updateObj);
         }
 
-        function renderRoomResults() {
+        // KẾT QUẢ
+        function renderResults() {
             showScreen('result');
-            sfx.fanfare();
-
-            const list = currentRoom.players;
-            const podium = document.getElementById('podium-container');
-            podium.innerHTML = '';
-
-            if (list.length >= 2) {
-                const p2 = list[1];
-                const p1 = list[0];
-                const p3 = list[2];
-
-                podium.innerHTML = `
-                    <div class="flex flex-col items-center">
-                        <div class="text-xs font-bold text-slate-300 truncate max-w-[80px]">${escapeHtml(p2.name)}</div>
-                        <div class="text-[10px] text-cyan-400 font-orbitron mb-1">${p2.time.toFixed(3)}s</div>
-                        <div class="w-full h-20 bg-slate-800 border-t-2 border-slate-400 rounded-t-xl flex items-center justify-center font-orbitron font-extrabold text-slate-300 text-lg">🥈</div>
-                    </div>
-
-                    <div class="flex flex-col items-center">
-                        <div class="text-xs font-bold text-amber-400 truncate max-w-[90px]">${escapeHtml(p1.name)}</div>
-                        <div class="text-[10px] text-amber-300 font-orbitron mb-1">${p1.time.toFixed(3)}s</div>
-                        <div class="w-full h-28 bg-gradient-to-t from-amber-600/30 to-amber-500/10 border-t-2 border-amber-400 rounded-t-xl flex items-center justify-center font-orbitron font-black text-amber-400 text-2xl">🥇</div>
-                    </div>
-
-                    ${p3 ? `
-                    <div class="flex flex-col items-center">
-                        <div class="text-xs font-bold text-amber-600 truncate max-w-[80px]">${escapeHtml(p3.name)}</div>
-                        <div class="text-[10px] text-amber-600 font-orbitron mb-1">${p3.time.toFixed(3)}s</div>
-                        <div class="w-full h-16 bg-slate-800 border-t-2 border-amber-700 rounded-t-xl flex items-center justify-center font-orbitron font-extrabold text-amber-600 text-lg">🥉</div>
-                    </div>` : '<div></div>'}
-                `;
-            }
-
-            const tbody = document.getElementById('room-leaderboard-body');
+            const tbody = document.getElementById('result-tbody');
             tbody.innerHTML = '';
 
-            list.forEach((item, idx) => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-800/40 transition";
-
-                let medal = `#${idx + 1}`;
-                if (idx === 0) medal = '🥇 #1';
-                else if (idx === 1) medal = '🥈 #2';
-                else if (idx === 2) medal = '🥉 #3';
-
-                const isMe = (item.id === localPlayer.id);
-
-                tr.innerHTML = `
-                    <td class="p-3.5 text-center font-orbitron font-bold">${medal}</td>
-                    <td class="p-3.5 ${isMe ? 'text-indigo-400 font-bold' : 'text-slate-200'}">
-                        ${escapeHtml(item.name)} ${isMe ? '(Bạn)' : ''}
-                    </td>
-                    <td class="p-3.5 text-right font-orbitron text-slate-300">${item.time.toFixed(3)}s</td>
-                    <td class="p-3.5 text-right font-orbitron font-bold ${idx === 0 ? 'text-emerald-400' : 'text-slate-400'}">±${item.diff.toFixed(3)}s</td>
+            currentRoom.players.forEach((p, idx) => {
+                const isMe = p.id === localUser.id;
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-800/50">
+                        <td class="p-3 text-center font-orbitron font-bold">#${idx + 1}</td>
+                        <td class="p-3 font-semibold ${isMe ? 'text-indigo-400' : 'text-slate-200'}">${p.name} ${isMe ? '(Bạn)' : ''}</td>
+                        <td class="p-3 text-right font-orbitron">${p.time.toFixed(3)}s</td>
+                        <td class="p-3 text-right font-orbitron font-bold ${idx === 0 ? 'text-emerald-400' : 'text-slate-400'}">±${p.diff.toFixed(3)}s</td>
+                    </tr>
                 `;
-                tbody.appendChild(tr);
             });
 
-            const hostActions = document.getElementById('result-host-actions');
-            const guestMsg = document.getElementById('result-guest-msg');
-
-            if (localPlayer.isHost) {
-                hostActions.classList.remove('hidden');
-                guestMsg.classList.add('hidden');
+            if (localUser.isHost) {
+                document.getElementById('result-actions').classList.remove('hidden');
+                document.getElementById('result-guest-msg').classList.add('hidden');
             } else {
-                hostActions.classList.add('hidden');
-                guestMsg.classList.remove('hidden');
+                document.getElementById('result-actions').classList.add('hidden');
+                document.getElementById('result-guest-msg').classList.remove('hidden');
             }
         }
 
         document.getElementById('btn-next-round').addEventListener('click', async () => {
-            if (!localPlayer.isHost || !currentRoom) return;
-
-            const resetPlayers = currentRoom.players.map(p => ({
-                ...p,
-                finished: false,
-                time: 0,
-                diff: 0
-            }));
-
-            await update(ref(db, 'rooms/' + currentRoom.code), {
-                status: 'LOBBY',
-                players: resetPlayers
-            });
+            if (!localUser.isHost) return;
+            const resetP = currentRoom.players.map(p => ({ ...p, finished: false, time: 0, diff: 0 }));
+            await update(ref(db, 'rooms/' + currentRoom.code), { status: 'LOBBY', players: resetP });
         });
 
-        document.getElementById('btn-leave-room-host').addEventListener('click', () => {
-            location.reload();
+        document.getElementById('btn-copy').addEventListener('click', () => {
+            navigator.clipboard.writeText(currentRoom.code);
+            alert('Đã copy mã phòng!');
         });
-
-        function escapeHtml(str) {
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        }
     </script>
 </body>
 </html>
